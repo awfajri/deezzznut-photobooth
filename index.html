@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Photobooth Dies Natalis HIMTIKA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="img/logo.png" type="image/png" />
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap");
+      body {
+        font-family: "Orbitron", sans-serif;
+        background-image: url("../img/background.png");
+        background-size: cover;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        padding: 20px;
+      }
+      .container {
+        width: 90%;
+        height: 90%;
+        max-width: 1024px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 1.5rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+        padding: 2.5rem;
+        position: relative;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+      }
+
+      #webcam-container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 1rem;
+        background-color: #e5e7eb;
+        overflow: hidden;
+        position: relative;
+      }
+      video {
+        width: 100%;
+        height: auto;
+        transform: scaleX(-1); /* Membalik video agar seperti cermin */
+      }
+      #countdown {
+        position: absolute;
+        font-size: 6rem;
+        font-weight: bold;
+        color: white;
+        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="container bg-white p-10 rounded-3xl shadow-xl">
+      <!-- Halaman Utama (Main Page) -->
+      <div id="main-page" class="w-full h-full flex flex-col items-center">
+        <div
+          id="webcam-container"
+          class="w-full h-[70vh] relative flex justify-center items-center rounded-2xl bg-gray-200"
+        >
+          <h1 class="absolute text-3xl font-bold text-gray-700">
+            Photobooth HIMTIKA
+          </h1>
+          <video
+            id="webcam-stream"
+            autoplay
+            muted
+            playsinline
+            class="w-full h-full object-cover"
+          ></video>
+          <div id="countdown" class="hidden">3</div>
+        </div>
+        <button
+          id="start-button"
+          class="bg-indigo-600 text-white font-bold py-3 px-6 rounded-full shadow-lg hover:bg-indigo-700 transition-all mt-6"
+        >
+          Mulai Photobooth!
+        </button>
+      </div>
+    </div>
+
+    <script>
+      const webcamStream = document.getElementById("webcam-stream");
+      const startButton = document.getElementById("start-button");
+      const countdownElement = document.getElementById("countdown");
+
+      let capturedPhotos = [];
+
+      // --- Inisialisasi Webcam ---
+      async function startWebcam() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
+          webcamStream.srcObject = stream;
+        } catch (err) {
+          console.error("Tidak bisa mengakses kamera:", err);
+          alert("Tidak bisa mengakses kamera: " + err.message);
+        }
+      }
+
+      // --- Mengambil Foto dan Menjalankan Countdown ---
+      function takePhoto(callback) {
+        const canvas = document.createElement("canvas");
+        canvas.width = webcamStream.videoWidth;
+        canvas.height = webcamStream.videoHeight;
+        const ctx = canvas.getContext("2d");
+
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(webcamStream, 0, 0, canvas.width, canvas.height);
+
+        const photoDataUrl = canvas.toDataURL("image/jpeg");
+        callback(photoDataUrl);
+      }
+
+      function startCountdown() {
+        let count = 3;
+        countdownElement.textContent = count;
+        countdownElement.classList.remove("hidden");
+
+        const interval = setInterval(() => {
+          count--;
+          countdownElement.textContent = count;
+          if (count === 0) {
+            clearInterval(interval);
+            countdownElement.classList.add("hidden");
+            takePhoto((photoData) => {
+              capturedPhotos.push(photoData);
+              if (capturedPhotos.length < 3) {
+                setTimeout(startCountdown, 1000);
+              } else {
+                // Setelah 3 foto, simpan ke session storage dan pindah halaman
+                sessionStorage.setItem(
+                  "capturedPhotos",
+                  JSON.stringify(capturedPhotos)
+                );
+                window.location.href = "preview.html";
+              }
+            });
+          }
+        }, 1000);
+      }
+
+      // --- Event Listeners ---
+      startButton.addEventListener("click", () => {
+        capturedPhotos = [];
+        startCountdown();
+      });
+
+      // Mulai webcam saat halaman dimuat
+      window.onload = startWebcam;
+    </script>
+  </body>
+</html>
